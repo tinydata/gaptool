@@ -1,4 +1,5 @@
 require 'ap'
+require 'erb'
 
 $dist_plugins = [ 'Base' ]
 $plugins = $dist_plugins + YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins.yml"))

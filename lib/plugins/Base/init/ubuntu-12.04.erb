@@ -1,0 +1,19 @@
+echo "*** Installing ruby"
+sudo apt-get install -y zsh git libssl-dev ruby1.9.1-full build-essential
+sudo sudo REALLY_GEM_UPDATE_SYSTEM=true gem update --system
+sudo gem install --bindir /usr/local/bin --no-ri --no-rdoc chef
+echo "*** Creating users and data filesystem
+sudo mkdir /data
+sudo useradd -m -d /data/<%= @args[:app] %> -s /bin/zsh <%= $env_settings['user'] %> -g admin
+sudo useradd -m -d /data/admin -s /bin/zsh admin -g admin
+mkdir ~/.ssh 2> /dev/null; chmod 700 ~/.ssh/
+echo '<%= key %>' > ~/.ssh/id_rsa
+chmod 600 ~/.ssh/id_rsa
+echo 'StrictHostKeyChecking no' > ~/.ssh/config
+echo "*** Cloning ops repo
+git clone <%= $env_settings['ops_repo'] %> ./ops
+sudo mv ~/ops /data/admin; sudo chown -R admin:admin /data/admin
+sudo su -c "cd; bash ~/ops/shell/init" admin
+echo "*** Fixing sudoers
+sudo sh -c "echo \"%admin ALL=(ALL) NOPASSWD: ALL\" >> /etc/sudoers"
+sudo groupadd <%= $env_settings['user'] %>; sudo usermod -a -G <%= $env_settings['user'] %> <%= $env_settings['user'] %>

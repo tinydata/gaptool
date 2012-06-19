@@ -38,6 +38,11 @@ init:
     help: "availability zone to deploy in, default in your gt_env.yml"
     type: string
     default: nil
+  arch:
+    short: -r
+    help: "CPU architecture, currently i686 or x86_64"
+    type: string
+    default: nil
 web:
   << : *withoutnode
   enable:
@@ -52,3 +57,9 @@ info:
   << : *node
 log:
   << : *node
+  logtype:
+    short: -l
+    help: "Log type, as defined in the plugin's log.yml"
+    type: string
+    default: nil
+
