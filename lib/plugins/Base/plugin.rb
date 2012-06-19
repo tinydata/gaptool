@@ -24,6 +24,7 @@ module Base
           "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
         ]
         ap json
+        putkey(host)
         sshcmd(host, run)
       end
     end
@@ -31,7 +32,7 @@ module Base
   def info
     hosts = getCluster()
     hosts.peach do |host|
-      run = [ "cd ~admin/ops; git pull", "~admin/ops/scripts/gtinfo.rb" ]
+      run = [ "~admin/ops/scripts/gtinfo.rb" ]
       sshcmd(host, run)
     end
   end
@@ -85,26 +86,37 @@ module Base
     end
   end
   def init
-    AWS.config(:access_key_id => $user_settings['aws_id'], :secret_access_key => $user_settings['aws_secret'], :ec2_endpoint => $env_settings['ec2_endpoint'])
-    ec2 = AWS::EC2.new
-    zone = $env_settings['default_zone']
-    if @args[:zone]
+    if @args[:zone] == 'nil'
+      zone = @env_settings['default_zone']
+    else
       zone = @args[:zone]
     end
-    arch = $env_settings['default_arch']
-    if @args[:arch]
+    az = zone.chop
+    if @args[:arch] == 'nil'
+      arch = @env_settings['default_arch']
+    else
       arch = @args[:arch]
     end
-    ami = $env_settings[:amis][zone][arch]['id']
-    if @args[:node] != 'solo'
+    ami = @env_settings['amis'][az][arch]['id']
+    user = @env_settings['amis'][az][arch]['user']
+    if @args[:node] == 'solo' && isCluster?
       hosts = getCluster()
-    else
-      hosts = [ singlehost() ]
     end
-    itype = $env_settings['applications'][@args[:app]][@args[:environment]]['itype']
-    keyname = $user_settings['awskeys'][zone]
-    key = $user_settings['initkeys'][keyname]
+    if @args[:node] != 'solo' || !isCluster?
+      hosts = [ singleHost() ]
+    end
+    begin
+      initscript = File.read(File.expand_path(File.dirname(__FILE__) + "/init/#{@env_settings['amis'][az][arch]['os']}.erb"))
+    rescue
+      puts "There is no init file for your OS, aborting."
+      exit 100
+    end
+    itype = @env_settings['applications'][@args[:app]][@args[:environment]]['itype']
+    keyname = @user_settings['awskeys'][az]
+    key = @user_settings['initkeys'][keyname]
     sg = @env_settings['applications'][@args[:app]][@args[:environment]]['sg']
+    AWS.config(:access_key_id => @user_settings['aws_id'], :secret_access_key => @user_settings['aws_secret'], :ec2_endpoint => "ec2.#{az}.amazonaws.com")
+    ec2 = AWS::EC2.new
     hosts.peach do |host|
       host_settings = {
         'this_server' => host,
@@ -113,14 +125,40 @@ module Base
         'branch'      => @args[:branch]
       }
       json = @chefsettings.merge!(host_settings).to_json
-      instance = ec2.instances.create(:image_id => ami, :availability_zone => zone, :instance_type => itype, :key_name => key, :security_group_ids => sg)
-      sleep 45
+      instance = ec2.instances.create(:image_id => ami, :availability_zone => zone, :instance_type => itype, :key_name => keyname, :security_group_ids => sg)
+      print "Waiting for instanace to start".color(:cyan)
+      while instance.status != :running do
+        sleep 5
+        print ".".color(:yellow)
+      end
+      puts ""
+      print "Waiting for SSH to respoond".color(:cyan)
+      loop do
+        begin
+          ip = instance.ip_address
+          sshcmd(ip, ["exit 0"], user, key)
+          break
+        rescue
+          print ".".color(:yellow)
+        end
+        sleep 2
+      end
+      puts "Sleeping another 5s for disks to settle".color(:cyan)
+      sleep 5
+      ip = instance.ip_address
+      puts ""
       instance.add_tag('dns', :value => host)
       instance.add_tag('app', :value => @args[:app])
       instance.add_tag('environment', :value => @args[:environment])
-      instance.add_tag('Name', :value => host.sub(".#{$env_settings['domain']}", ""))
+      instance.add_tag('Name', :value => host.sub(".#{@env_settings['domain']}", ""))
       instance.add_tag('node', :value => @args[:node])
-      
+      render = ERB.new(initscript)
+      run = render.result(binding).split(/\n/)
+      run += [
+          "echo '#{json}' > ~admin/solo.json",
+          "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
+        ]
+      sshcmd(ip, run, user, key)
     end
   end
 end

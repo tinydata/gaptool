@@ -1,5 +1,6 @@
 require 'ap'
 require 'erb'
+require 'rainbow'
 
 $dist_plugins = [ 'Base' ]
 $plugins = $dist_plugins + YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins.yml"))
@@ -29,7 +30,6 @@ else
 end
 
 class GTBase
-  private
   def isCluster?
     if @env_settings['applications'][@args[:app]][@args[:environment]]['cluster']
       return true
@@ -48,15 +48,26 @@ class GTBase
     end
     return hosts
   end
-  def sshcmd(host, commands)
-    Net::SSH.start(host, 'admin', :key_data => [@user_settings['mykey']], :config => false, :keys_only => true, :paranoid => false) do |ssh|
+  def sshcmd(host, commands, user='admin', key=@user_settings['mykey'])
+    Net::SSH.start(host, user, :key_data => [key], :config => false, :keys_only => true, :paranoid => false) do |ssh|
       commands.each do |command|
+        puts command.color(:cyan)
         ssh.exec! command do
           |ch, stream, line|
-          puts "*** #{host} :: #{line}"
+          puts "#{host.color(:yellow)}:#{line}"
         end
       end
     end
+  end
+  def putkey(host)
+    breakkey = @user_settings['mykey'].gsub(/\n/,'###')
+    run = [
+      "rm ~admin/.ssh/mykey* 2> /dev/null",
+      "echo '#{breakkey}' > /tmp/key",
+      "key=`mktemp -u -p ~admin/.ssh/ -t mykey.XXX`; cat /tmp/key|perl -pe 's/###/\\n$1/g' > ${key}; echo \"Host *\\n  StrictHostKeyChecking no\\n  IdentityFile ${key}\" > ~admin/.ssh/config",
+      "rm /tmp/key"
+    ]
+    sshcmd(host, run)
   end
   def sshReachable?
     hosts = getCluster()
@@ -83,7 +94,6 @@ class GTBase
       return "#{@args[:app]}-#{@args[:environment]}.#{@env_settings['domain']}"
     end
   end
-  public
   def initialize(args)
     @args = args
     if ENV['GT_ENV_SETTINGS']

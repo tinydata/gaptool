@@ -15,6 +15,7 @@ GEM
     net-ssh (2.1.4)
     nokogiri (1.5.2)
     peach (0.4)
+    rainbow (1.1.4)
     trollop (1.16.2)
     uuidtools (2.1.2)
 
@@ -26,4 +27,5 @@ DEPENDENCIES
   json
   net-ssh
   peach
+  rainbow
   trollop
