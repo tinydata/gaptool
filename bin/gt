@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'net/ssh'
+require 'trollop'
+require 'yaml'
+require 'aws'
+require 'json'
+require 'peach'
+require 'tinder'
+require File.expand_path(File.dirname(__FILE__) + "/../lib/app.rb")
+
+# Make sure lang isn't fucked
+ENV['LANG'] = "en_US.UTF-8"
+
+
+# Nuke your ssh-agent
+ENV['SSH_AUTH_SOCK'] = ''

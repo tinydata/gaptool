@@ -1,0 +1,54 @@
+chefrun: &withoutnode
+  app:
+    short: -a
+    type: string
+    help: Which appliction, e.g. twitter
+    default: nil
+  environment:
+    short: -e
+    type: string
+    help: Environment, e.g. staging
+    default: nil
+scpto: &node
+  << : *withoutnode
+  node:
+    short: -n
+    type: string
+    help: leave blank if solo, otherwise, app2, util, etc...
+    default: solo
+scpfrom:
+  << : *node
+ssh:
+  << : *node
+deploy:
+  << : *withoutnode
+  migrate:
+    short: -m
+    help: "Toggle migrations, default off"
+    defaut: nil
+  branch: 
+    short: -r
+    help: "Choose git branch, default defined in your gt_env.yml"
+    type: string
+    default: nil
+init:
+  << : *node
+  zone:
+    short: -z
+    help: "availability zone to deploy in, default in your gt_env.yml"
+    type: string
+    default: nil
+web:
+  << : *withoutnode
+  enable:
+    short: -n
+    help: "Remove maint. page"
+    default: nil
+  disable:
+    short: -d
+    help: "Put up maint. page"
+    default: nil
+info:
+  << : *node
+log:
+  << : *node
