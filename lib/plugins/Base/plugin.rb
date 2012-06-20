@@ -15,7 +15,9 @@ module Base
       hosts.peach do |host|
         host_settings = {
           'this_server' => host,
-          'run_list'    => [ "recipe[#{@chefsettings['normal_recipe']}]" ]
+          'run_list'    => [ "recipe[#{@chefsettings['normal_recipe']}]" ],
+          'app_user'    => @env_settings['user'],
+          'app_name'    => @args[:app]
         }
         json = @chefsettings.merge!(host_settings).to_json
         run = [
@@ -23,7 +25,6 @@ module Base
           "echo '#{json}' > ~admin/solo.json",
           "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
         ]
-        ap json
         putkey(host)
         sshcmd(host, run)
       end
@@ -55,7 +56,9 @@ module Base
           'this_server' => host,
           'run_list'    => [ "recipe[#{@chefsettings['deploy_recipe']}]" ],
           'do_migrate'  => @args[:migrate],
-          'branch'      => @args[:branch]
+          'branch'      => @args[:branch],
+          'app_user'    => @env_settings['user'],
+          'app_name'    => @args[:app]
         }
         json = @chefsettings.merge!(host_settings).to_json
         run = [
@@ -122,7 +125,9 @@ module Base
         'this_server' => host,
         'run_list'    => [ "recipe[#{@chefsettings['init_recipe']}]" ],
         'do_migrate'  => @args[:migrate],
-        'branch'      => @args[:branch]
+        'branch'      => @args[:branch],
+        'app_user'    => @env_settings['user'],
+        'app_name'    => @args[:app]
       }
       json = @chefsettings.merge!(host_settings).to_json
       instance = ec2.instances.create(:image_id => ami, :availability_zone => zone, :instance_type => itype, :key_name => keyname, :security_group_ids => sg)
@@ -156,7 +161,7 @@ module Base
       run = render.result(binding).split(/\n/)
       run += [
           "echo '#{json}' > /tmp/solo.json",
-          "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j /tmp/solo.json",
+          "sudo su -c 'chef-solo -c ~admin/ops/cookbooks/solo.rb -j /tmp/solo.json'",
           "sudo rm /tmp/solo.json"
         ]
       sshcmd(ip, run, user, key)
