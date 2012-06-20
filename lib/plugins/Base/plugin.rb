@@ -155,8 +155,9 @@ module Base
       render = ERB.new(initscript)
       run = render.result(binding).split(/\n/)
       run += [
-          "echo '#{json}' > ~admin/solo.json",
-          "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
+          "echo '#{json}' > /tmp/solo.json",
+          "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j /tmp/solo.json",
+          "sudo rm /tmp/solo.json"
         ]
       sshcmd(ip, run, user, key)
     end
