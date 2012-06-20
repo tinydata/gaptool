@@ -64,7 +64,8 @@ class GTBase
     run = [
       "rm ~admin/.ssh/mykey* 2> /dev/null",
       "echo '#{breakkey}' > /tmp/key",
-      "key=`mktemp -u -p ~admin/.ssh/ -t mykey.XXX`; cat /tmp/key|perl -pe 's/###/\\n$1/g' > ${key}; echo \"Host *\\n  StrictHostKeyChecking no\\n  IdentityFile ${key}\" > ~admin/.ssh/config",
+      "key=`mktemp -u -p ~admin/.ssh/ -t mykey.XXX`; cat /tmp/key|perl -pe 's/###/\\n$1/g' > ${key}; echo \"Host *\\n  StrictHostKeyChecking no\\n  IdentityFile ${key}\" > ~admin/.ssh/config;chmod 600 ${key}",
+      "chmod 600 ~admin/.ssh/config",
       "rm /tmp/key"
     ]
     sshcmd(host, run)
