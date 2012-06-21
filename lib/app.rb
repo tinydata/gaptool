@@ -1,7 +1,3 @@
-require 'ap'
-require 'erb'
-require 'rainbow'
-
 def setup
   yaml = Hash.new
   unless File.directory?("#{ENV['HOME']}/.gaptool") || File.exists?("#{ENV['HOME']}/.gaptool")
