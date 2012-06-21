@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name = "gildtool"
+  s.name = "gaptool"
   s.version = "0.10.0"
   s.authors = ['Matt Bailey']
   s.email = ['m@mdb.io']
