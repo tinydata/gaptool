@@ -2,20 +2,57 @@ require 'ap'
 require 'erb'
 require 'rainbow'
 
+def setup
+  yaml = Hash.new
+  unless File.directory?("#{ENV['HOME']}/.gaptool") || File.exists?("#{ENV['HOME']}/.gaptool")
+    puts "Welcome to gaptool setup\nThis will set up your ~/.gaptool configuration\nYou will need very little info here if you are NOT creating new nodes (e.g. just configuring and deploying)\nIf you ARE using the the 'init' facility, you will need your AWS ID, Secret, and EC2 PEM keys for relevant Availability Zones.".color(:red)
+    puts "Starting with your AWS ID/Secret.\nIf you don't have these, just press enter.".color(:cyan)
+    print "Enter your AWS ID: "
+    yaml['aws_id'] = gets.chomp
+    print "enter your AWS Secret: "
+    yaml['aws_secret'] = gets.chomp
+    puts "Now we will go through each AWS zone\nEnter a key NAME you have in each zone that you want associated with gaptool nodes.\nIf you don't have one, press enter.\nAfter each key, paste the path to the downloaded key.".color(:cyan)
+    zones = [ 'us-east-1', 'us-west-1', 'us-west-2', 'eu-west-1', 'ap-southeast-1', 'ap-northeast-1', 'sa-east-1' ]
+    yaml['awskeys'] = Hash.new
+    yaml['initkeys'] = Hash.new
+    zones.each do |zone|
+      print "#{zone}: "
+      yaml['awskeys'][zone] = gets.chomp
+      if yaml['awskeys'][zone] != ''
+        print "Path to #{zone}.pem: "
+        yaml['initkeys'][yaml['awskeys'][zone]] = File.read(File.expand_path(gets.chomp))
+      end
+    end
+    key = OpenSSL::PKey::RSA.new 2048
+    type = key.ssh_type
+    data = [ key.to_blob ].pack('m0')
+    yaml['mykey'] = key.to_pem
+    yaml['mypub'] = "#{type} #{data}"
+    Dir.mkdir("#{ENV['HOME']}/.gaptool")
+    Dir.mkdir("#{ENV['HOME']}/.gaptool/plugins")
+    File.open("#{ENV['HOME']}/.gaptool/plugins.yml", "w") {}
+    File.open(File.expand_path("~/.gaptool/user.yml"), 'w') {|f| f.write(yaml.to_yaml) }
+    puts "Your ~/.gaptool directory and user.yml have been configured\nPlease ask your administrator to provide you with a env.yml\nAdd the following public key to your github profile (or your git repo server)\nas well as in the authorized_keys file in your chef recipe for the admin user.".color(:cyan)
+    puts yaml['mypub']
+    exit 0
+  end
+end
+setup()
+
 $dist_plugins = [ 'Base' ]
 $plugins = $dist_plugins + YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins.yml"))
 
 $commands = Hash.new
 $plugins.each do |plugin|
-  if plugin == 'Base'
-    $commands.merge!(YAML::load(File.open(File.expand_path(File.dirname(__FILE__) + '/plugins/Base/config.yml'))))
+  if $dist_plugins.include? plugin
+    $commands.merge!(YAML::load(File.open(File.expand_path(File.dirname(__FILE__) + "/plugins/#{plugin}/config.yml"))))
   else
     $commands.merge!(YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins/#{plugin.to_s}/config.yml")))
   end
 end
 
 cmd = ARGV.shift
-if !$commands.keys.include?(cmd)
+if !$commands.keys.include?(cmd) || cmd.nil?
   puts "Invalid option, please select one of the following commands:"
   $commands.keys.each do |command|
     puts "  #{command}"
@@ -24,7 +61,11 @@ if !$commands.keys.include?(cmd)
 else
   cmd_opts = Trollop::options do
     $commands[cmd].each_key do |key|
-      opt key.to_sym, $commands[cmd][key]['help'], :short => $commands[cmd][key]['short'], :default => $commands[cmd][key]['default'], :type => $commands[cmd][key]['type'].to_sym
+      if $commands[cmd][key]['type'].nil?
+        opt key.to_sym, $commands[cmd][key]['help'], :short => $commands[cmd][key]['short'], :default => $commands[cmd][key]['default']
+      else
+        opt key.to_sym, $commands[cmd][key]['help'], :short => $commands[cmd][key]['short'], :default => $commands[cmd][key]['default'], :type => $commands[cmd][key]['type'].to_sym
+      end
     end
   end
 end
@@ -108,8 +149,8 @@ class GTBase
         @user_settings = YAML::load(File.open(File.expand_path("#{ENV['HOME']}/.gaptool/user.yml")))
     end
     chef_extra = {
-      'rails_env' => @args['environment'],
-      'server_names' => getCluster(),
+      'rails_env' => @args[:environment],
+      'server_names' => getCluster()
     }
     @chefsettings = @env_settings['applications'][@args[:app]][@args[:environment]]
     @chefsettings.merge!(@args)
@@ -127,6 +168,8 @@ class GTCluster < GTBase
     include Object.const_get(plugin)
   end
 end
+
+
 
 cluster = GTCluster.new(cmd_opts)
 cluster.send cmd

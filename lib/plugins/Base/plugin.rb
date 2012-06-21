@@ -50,6 +50,9 @@ module Base
   end
   def deploy
     if sshReachable?
+      if @args[:branch] == "nil" || @args[:branch].nil?
+        branch = @env_settings['applications'][@args[:app]][@args[:environment]]['default_branch']
+      end
       hosts = getCluster()
       hosts.peach do |host|
         host_settings = {
@@ -66,7 +69,7 @@ module Base
           "echo '#{json}' > ~admin/solo.json",
           "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
         ]
-        ap json
+        putkey(host)
         sshcmd(host, run)
       end
     end
