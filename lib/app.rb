@@ -99,10 +99,19 @@ class GTBase
   def putkey(host)
     breakkey = @user_settings['mykey'].gsub(/\n/,'###')
     run = [
-      "rm ~admin/.ssh/mykey* 2> /dev/null",
+      "rm ~admin/.ssh/key 2> /dev/null",
       "echo '#{breakkey}' > /tmp/key",
-      "key=`mktemp -u -p ~admin/.ssh/ -t mykey.XXX`; cat /tmp/key|perl -pe 's/###/\\n$1/g' > ${key}; echo \"Host *\\n  StrictHostKeyChecking no\\n  IdentityFile ${key}\" > ~admin/.ssh/config;chmod 600 ${key}",
+      "cat /tmp/key|perl -pe 's/###/\\n$1/g' > ~admin/.ssh/key",
+      "echo \"IdentitiesOnly yes\\nHost *\\n  StrictHostKeyChecking no\\n  IdentityFile ~/.ssh/key\" > ~admin/.ssh/config",
+      "chmod 600 ~admin/.ssh/key",
       "chmod 600 ~admin/.ssh/config",
+      "sudo rm ~#{@env_settings['user']}/.ssh/key",
+      "sudo cp ~admin/.ssh/key ~#{@env_settings['user']}/.ssh/",
+      "sudo cp ~admin/.ssh/config ~#{@env_settings['user']}/.ssh/",
+      "sudo chown #{@env_settings['user']}:#{@env_settings['user']} ~#{@env_settings['user']}/.ssh/key",
+      "sudo chown #{@env_settings['user']}:#{@env_settings['user']} ~#{@env_settings['user']}/.ssh/config",
+      "sudo chmod 600 ~#{@env_settings['user']}/.ssh/key",
+      "sudo chmod 600 ~#{@env_settings['user']}/.ssh/config",
       "rm /tmp/key"
     ]
     sshcmd(host, run)
