@@ -52,6 +52,8 @@ module Base
     if sshReachable?
       if @args[:branch] == "nil" || @args[:branch].nil?
         branch = @env_settings['applications'][@args[:app]][@args[:environment]]['default_branch']
+      else
+        branch = @args[:branch]
       end
       hosts = getCluster()
       hosts.peach do |host|
@@ -59,7 +61,7 @@ module Base
           'this_server' => host,
           'run_list'    => [ "recipe[#{@chefsettings['deploy_recipe']}]" ],
           'do_migrate'  => @args[:migrate],
-          'branch'      => @args[:branch],
+          'branch'      => branch,
           'app_user'    => @env_settings['user'],
           'app_name'    => @args[:app]
         }

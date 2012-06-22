@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "gaptool"
-  s.version = "0.10.1"
+  s.version = "0.10.2"
   s.authors = ['Matt Bailey']
   s.email = ['m@mdb.io']
   s.homepage = 'http://mdb.io'
