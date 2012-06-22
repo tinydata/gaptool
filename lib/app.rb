@@ -36,7 +36,11 @@ end
 setup()
 
 $dist_plugins = [ 'Base' ]
-$plugins = $dist_plugins + YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins.yml"))
+if YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins.yml"))
+  $plugins = $dist_plugins + YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins.yml"))
+else
+  $plugins = $dist_plugins
+end
 
 $commands = Hash.new
 $plugins.each do |plugin|
