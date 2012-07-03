@@ -6,8 +6,26 @@ module Base
     system "rm /tmp/mykey 2> /dev/null"
   end
   def scpfrom
+    require 'net/scp'
+    # net-scp does not handle ~ well...
+    remote = ARGV[-2].gsub('~', "/data/admin")
+    local = ARGV[-1].gsub('~', ENV['HOME'])
+    host = singleHost()
+    session = Net::SSH.start(host, 'admin', :key_data => [@user_settings['mykey']], :config => false, :keys_only => true, :paranoid => false)
+    session.scp.download!(remote, local, :recursive => true) do |ch, name, sent, total|
+      print "\r#{name}: #{(sent.to_f * 100 / total.to_f).to_i}%"
+    end
   end
   def scpto
+    require 'net/scp'
+    # net-scp does not handle ~ well...
+    remote = ARGV[-1].gsub(/~/, "/data/admin")
+    local = ARGV[-2].gsub(/~/, ENV['HOME'])
+    host = singleHost()
+    session = Net::SSH.start(host, 'admin', :key_data => [@user_settings['mykey']], :config => false, :keys_only => true, :paranoid => false)
+    session.scp.upload!(local, remote, :recursive => true) do |ch, name, sent, total|
+      print "\r#{name}: #{(sent.to_f * 100 / total.to_f).to_i}%"
+    end
   end
   def chefrun
     if sshReachable?
@@ -81,13 +99,13 @@ module Base
       hosts = getCluster()
       if @args[:enable]
         hosts.peach do |host|
-          sshcmd(host, "sudo -u #{@env_settings['user']} rm /data/#{@args[:app]}/shared/system/maintenance.html 2> /dev/null")
+          sshcmd(host, "sudo -u #{@env_settings['user']} rm /data/#{@args[:app]}/shared/system/maintenance.html 2> /dev/null", :quiet => true)
           puts "#{host} : web enabled"
         end
       end
       if @args[:disable]
         hosts.peach do |host|
-          sshcmd(host, "sudo -u #{@env_settings['user']} ln -sf /data/#{@args[:app]}/current/public/maintenance.html /data/#{@args[:app]}/shared/system/maintenance.html")
+          sshcmd(host, "sudo -u #{@env_settings['user']} ln -sf /data/#{@args[:app]}/current/public/maintenance.html /data/#{@args[:app]}/shared/system/maintenance.html", :quiet => true)
           puts "#{host} : web disabled"
         end
       end

@@ -89,13 +89,17 @@ class GTBase
     end
     return hosts
   end
-  def sshcmd(host, commands, user='admin', key=@user_settings['mykey'])
+  def sshcmd(host, commands, options = {}, user='admin', key=@user_settings['mykey'])
     Net::SSH.start(host, user, :key_data => [key], :config => false, :keys_only => true, :paranoid => false) do |ssh|
       commands.each do |command|
-        puts command.color(:cyan)
+        if !options[:quiet]
+          puts command.color(:cyan)
+        end
         ssh.exec! command do
           |ch, stream, line|
-          puts "#{host.color(:yellow)}:#{line}"
+          if !options[:quiet]
+            puts "#{host.color(:yellow)}:#{line}"
+          end
         end
       end
     end
@@ -118,14 +122,14 @@ class GTBase
       "sudo chmod 600 ~#{@env_settings['user']}/.ssh/config",
       "rm /tmp/key"
     ]
-    sshcmd(host, run)
+    sshcmd(host, run, :quiet => true)
   end
   def sshReachable?
     hosts = getCluster()
     hosts.each do |host|
       begin
         puts "Checking SSH to: #{host}"
-        sshcmd(host, ["exit 0"])
+        sshcmd(host, ["exit 0"], :quiet => true)
       rescue
         puts "ERROR: Could not ssh to #{host}\nEither your connection is failing or AWS is having routing issues.\nAborting."
         exit 255

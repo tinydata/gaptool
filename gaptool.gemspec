@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.executables = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
 
   s.add_dependency "net-ssh"
+  s.add_dependency "net-scp"
   s.add_dependency "trollop"
   s.add_dependency "aws-sdk"
   s.add_dependency "json"
