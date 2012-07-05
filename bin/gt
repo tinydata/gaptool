@@ -7,7 +7,6 @@ require 'yaml'
 require 'aws'
 require 'json'
 require 'peach'
-require 'tinder'
 require 'erb'
 require 'rainbow'
 require File.expand_path(File.dirname(__FILE__) + "/../lib/app.rb")
