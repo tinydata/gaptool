@@ -164,7 +164,7 @@ module Base
       loop do
         begin
           ip = instance.ip_address
-          sshcmd(ip, ["exit 0"], user, key)
+          sshcmd(ip, ["exit 0"], :user => user, :key => key)
           break
         rescue
           print ".".color(:yellow)
@@ -187,7 +187,7 @@ module Base
           "sudo su -c 'chef-solo -c ~admin/ops/cookbooks/solo.rb -j /tmp/solo.json'",
           "sudo rm /tmp/solo.json"
         ]
-      sshcmd(ip, run, user, key)
+      sshcmd(ip, run, :user => user, :key => key)
     end
   end
 end

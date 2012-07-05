@@ -89,7 +89,17 @@ class GTBase
     end
     return hosts
   end
-  def sshcmd(host, commands, options = {}, user='admin', key=@user_settings['mykey'])
+  def sshcmd(host, commands, options = {})
+    if options[:user]
+      user = options[:user]
+    else
+      user = 'admin'
+    end
+    if options[:key]
+      key = options[:key]
+    else
+      key = @user_settings['mykey']
+    end
     Net::SSH.start(host, user, :key_data => [key], :config => false, :keys_only => true, :paranoid => false) do |ssh|
       commands.each do |command|
         if !options[:quiet]
