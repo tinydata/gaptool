@@ -31,6 +31,17 @@ deploy:
     help: "Choose git branch, default defined in your gt_env.yml"
     type: string
     default: nil
+rollback:
+  << : *withoutnode
+  migrate:
+    short: -m
+    help: "Toggle migrations, default off"
+    defaut: nil
+  branch: 
+    short: -r
+    help: "Choose git branch, default defined in your gt_env.yml"
+    type: string
+    default: nil
 init:
   << : *node
   zone:

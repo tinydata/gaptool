@@ -81,7 +81,37 @@ module Base
           'do_migrate'  => @args[:migrate],
           'branch'      => branch,
           'app_user'    => @env_settings['user'],
-          'app_name'    => @args[:app]
+          'app_name'    => @args[:app],
+          'rollback'    => false
+        }
+        json = @chefsettings.merge!(host_settings).to_json
+        run = [
+          "cd ~admin/ops; git pull",
+          "echo '#{json}' > ~admin/solo.json",
+          "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
+        ]
+        putkey(host)
+        sshcmd(host, run)
+      end
+    end
+  end
+  def rollback
+    if sshReachable?
+      if @args[:branch] == "nil" || @args[:branch].nil?
+        branch = @env_settings['applications'][@args[:app]][@args[:environment]]['default_branch']
+      else
+        branch = @args[:branch]
+      end
+      hosts = getCluster()
+      hosts.peach do |host|
+        host_settings = {
+          'this_server' => host,
+          'run_list'    => [ "recipe[#{@chefsettings['deploy_recipe']}]" ],
+          'do_migrate'  => @args[:migrate],
+          'branch'      => branch,
+          'app_user'    => @env_settings['user'],
+          'app_name'    => @args[:app],
+          'rollback'    => true
         }
         json = @chefsettings.merge!(host_settings).to_json
         run = [
