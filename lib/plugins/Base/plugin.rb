@@ -30,10 +30,15 @@ module Base
   def chefrun
     if sshReachable?
       hosts = getCluster()
+      if @args[:recipe]
+        run_list = @args[:recipe]
+      else
+        run_list = @chefsettings['normal_recipe']
+      end
       hosts.peach do |host|
         host_settings = {
           'this_server' => host,
-          'run_list'    => [ "recipe[#{@chefsettings['normal_recipe']}]" ],
+          'run_list'    => [ "recipe[#{run_list}]" ],
           'app_user'    => @env_settings['user'],
           'app_name'    => @args[:app]
         }

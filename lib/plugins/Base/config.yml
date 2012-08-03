@@ -1,4 +1,4 @@
-chefrun: &withoutnode
+default: &withoutnode
   app:
     short: -a
     type: string
@@ -8,6 +8,12 @@ chefrun: &withoutnode
     short: -e
     type: string
     help: Environment, e.g. staging
+    default: nil
+chefrun:
+  << : *withoutnode
+  recipe:
+    short: -r
+    help: specific recipe
     default: nil
 scpto: &node
   << : *withoutnode
