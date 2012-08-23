@@ -1,7 +1,7 @@
 def setup
   yaml = Hash.new
-  unless File.directory?("#{ENV['HOME']}/.gaptool") || File.exists?("#{ENV['HOME']}/.gaptool")
-    puts "Welcome to gaptool setup\nThis will set up your ~/.gaptool configuration\nYou will need very little info here if you are NOT creating new nodes (e.g. just configuring and deploying)\nIf you ARE using the the 'init' facility, you will need your AWS ID, Secret, and EC2 PEM keys for relevant Availability Zones.".color(:red)
+  unless File.directory?("#{ENV['HOME']}/.gaptool-ma") || File.exists?("#{ENV['HOME']}/.gaptool-ma")
+    puts "Welcome to gaptool setup\nThis will set up your ~/.gaptool-ma configuration\nYou will need very little info here if you are NOT creating new nodes (e.g. just configuring and deploying)\nIf you ARE using the the 'init' facility, you will need your AWS ID, Secret, and EC2 PEM keys for relevant Availability Zones.".color(:red)
     puts "Starting with your AWS ID/Secret.\nIf you don't have these, just press enter.".color(:cyan)
     print "Enter your AWS ID: "
     yaml['aws_id'] = gets.chomp
@@ -24,30 +24,32 @@ def setup
     data = [ key.to_blob ].pack('m0')
     yaml['mykey'] = key.to_pem
     yaml['mypub'] = "#{type} #{data}"
-    Dir.mkdir("#{ENV['HOME']}/.gaptool")
-    Dir.mkdir("#{ENV['HOME']}/.gaptool/plugins")
-    File.open("#{ENV['HOME']}/.gaptool/plugins.yml", "w") {}
-    File.open(File.expand_path("~/.gaptool/user.yml"), 'w') {|f| f.write(yaml.to_yaml) }
-    puts "Your ~/.gaptool directory and user.yml have been configured\nPlease ask your administrator to provide you with a env.yml\nAdd the following public key to your github profile (or your git repo server)\nas well as in the authorized_keys file in your chef recipe for the admin user.".color(:cyan)
+    Dir.mkdir("#{ENV['HOME']}/.gaptool-ma")
+    Dir.mkdir("#{ENV['HOME']}/.gaptool-ma/plugins")
+    File.open("#{ENV['HOME']}/.gaptool-ma/plugins.yml", "w") {}
+    File.open(File.expand_path("~/.gaptool-ma/user.yml"), 'w') {|f| f.write(yaml.to_yaml) }
+    puts "Your ~/.gaptool-ma directory and user.yml have been configured\nPlease ask your administrator to provide you with a env.yml\nAdd the following public key to your github profile (or your git repo server)\nas well as in the authorized_keys file in your chef recipe for the admin user.".color(:cyan)
     puts yaml['mypub']
     exit 0
   end
 end
 setup()
 
+
 $dist_plugins = [ 'Base' ]
-if YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins.yml"))
-  $plugins = $dist_plugins + YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins.yml"))
+if YAML::load(File.open("#{ENV['HOME']}/.gaptool-ma/plugins.yml"))
+  $plugins = $dist_plugins + YAML::load(File.open("#{ENV['HOME']}/.gaptool-ma/plugins.yml"))
 else
   $plugins = $dist_plugins
 end
 
 $commands = Hash.new
+$c = Array.new
 $plugins.each do |plugin|
   if $dist_plugins.include? plugin
     $commands.merge!(YAML::load(File.open(File.expand_path(File.dirname(__FILE__) + "/plugins/#{plugin}/config.yml"))))
   else
-    $commands.merge!(YAML::load(File.open("#{ENV['HOME']}/.gaptool/plugins/#{plugin.to_s}/config.yml")))
+    $commands.merge!(YAML::load(File.open("#{ENV['HOME']}/.gaptool-ma/plugins/#{plugin.to_s}/config.yml")))
   end
 end
 
@@ -69,24 +71,15 @@ else
     end
   end
 end
-
+require 'ap'
 class GTBase
   def isCluster?
-    if @env_settings['applications'][@args[:app]][@args[:environment]]['cluster']
-      return true
-    else
-      return false
-    end
+    return false
   end
   def getCluster
     hosts = Array.new
-    if isCluster?
-      @env_settings['applications'][@args[:app]][@args[:environment]]['cluster'].each do |node|
-        hosts << "#{@args[:app]}-#{@args[:environment]}-#{node}.#{@env_settings['domain']}"
-      end
-    else
-      hosts << "#{@args[:app]}-#{@args[:environment]}.#{@env_settings['domain']}"
-    end
+    nodes = $c.select {|f| f[:role] == @args[:role] }.select {|i| i[:environment] == @args[:environment]}
+    nodes.each {|f| hosts += [f[:hostname]]}
     return hosts
   end
   def sshcmd(host, commands, options = {})
@@ -149,35 +142,66 @@ class GTBase
     return true
   end
   def singleHost
-    if @args[:node] == 'solo' && isCluster?
-      puts "The environment you're accessing is a cluster.\nYou've selected an action that acts only on a single node, but have not specified a node with --node/-n\nAborting."
-      exit 100
-    end
-    if isCluster?
-      return "#{@args[:app]}-#{@args[:environment]}-#{@args[:node]}.#{@env_settings['domain']}"
-    else
-      return "#{@args[:app]}-#{@args[:environment]}.#{@env_settings['domain']}"
-    end
+    return "#{@args[:role]}-#{@args[:environment]}-#{@args[:number]}.#{@env_settings['domain']}"
   end
   def initialize(args)
     @args = args
     if ENV['GT_ENV_SETTINGS']
         @env_settings = YAML::load(File.open(File.expand_path(ENV['GT_ENV_CONFIG'])))
     else
-        @env_settings = YAML::load(File.open(File.expand_path("#{ENV['HOME']}/.gaptool/env.yml")))
+        @env_settings = YAML::load(File.open(File.expand_path("#{ENV['HOME']}/.gaptool-ma/env.yml")))
     end
     if ENV['GT_USER_SETTINGS']
         @user_settings = YAML::load(File.open(File.expand_path(ENV['GT_USER_CONFIG'])))
     else
-        @user_settings = YAML::load(File.open(File.expand_path("#{ENV['HOME']}/.gaptool/user.yml")))
+        @user_settings = YAML::load(File.open(File.expand_path("#{ENV['HOME']}/.gaptool-ma/user.yml")))
     end
     chef_extra = {
       'rails_env' => @args[:environment],
       'server_names' => getCluster()
     }
-    @chefsettings = @env_settings['applications'][@args[:app]][@args[:environment]]
-    @chefsettings.merge!(@args)
+#    @chefsettings = @env_settings['applications'][@args[:app]][@args[:environment]]
+    @chefsettings = @args
     @chefsettings.merge!(chef_extra)
+    if @args[:zone].to_s == ''
+      zone = @env_settings['default_zone']
+    else
+      zone = @args[:zone]
+    end
+    az = zone.chop
+    require 'ap'
+    AWS.config(:access_key_id => @user_settings['aws_id'], :secret_access_key => @user_settings['aws_secret'], :ec2_endpoint => "ec2.#{az}.amazonaws.com")
+    @ec2 = AWS::EC2.new
+    def cgen
+      c = Array.new
+      tags = @ec2.instances.inject({}) { |m, i| m[i.id] = i.tags.to_h; m }
+      tags.keys.each do |key|
+        if tags[key]['gaptool'] != nil
+          gaptags = eval(tags[key]['gaptool'])
+          hostname = "#{gaptags[:role]}-#{gaptags[:environment]}-#{gaptags[:number]}.#{@env_settings['domain']}"
+          c += [{
+            :hostname => hostname,
+            :recipe => gaptags[:recipe],
+            :deploy => gaptags[:deploy],
+            :number => gaptags[:number],
+            :role => gaptags[:role],
+            :environment => gaptags[:environment],
+            :apps => gaptags[:apps]
+          }]
+        end
+      end
+      return c
+    end
+    if File.exists?("#{ENV['HOME']}/.gaptool-ma/aws.yml")
+      $c = YAML::load(File.open(File.expand_path("#{ENV['HOME']}/.gaptool-ma/aws.yml")))
+    else
+      $c = cgen()
+    end
+    cwrite = fork do
+      File.open(File.expand_path("#{ENV['HOME']}/.gaptool-ma/aws.yml"), 'w') {|f| f.write(cgen().to_yaml)}
+    end
+    Process.detach(cwrite)
+    ap $c
   end
 end
 
@@ -186,13 +210,11 @@ class GTCluster < GTBase
     if $dist_plugins.include?(plugin)
       require File.expand_path(File.dirname(__FILE__) + "/plugins/#{plugin}/plugin.rb")
     else
-      require File.expand_path(ENV['HOME'] + "/.gaptool/plugins/#{plugin}/plugin.rb")
+      require File.expand_path(ENV['HOME'] + "/.gaptool-ma/plugins/#{plugin}/plugin.rb")
     end
     include Object.const_get(plugin)
   end
 end
-
-
 
 cluster = GTCluster.new(cmd_opts)
 cluster.send cmd

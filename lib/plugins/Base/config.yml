@@ -7,12 +7,21 @@ default: &withoutnode
   environment:
     short: -e
     type: string
-    help: Environment, e.g. staging
+    help: environment, e.g. staging
     default: nil
 chefrun:
-  << : *withoutnode
-  recipe:
+  role:
     short: -r
+    type: string
+    help: server role, e.g. app
+    default: nil
+  environment:
+    short: -e
+    type: string
+    help: environment, e.g. staging
+    default: nil
+  recipe:
+    short: -c
     help: specific recipe
     default: nil
 scpto: &node
@@ -25,7 +34,21 @@ scpto: &node
 scpfrom:
   << : *node
 ssh:
-  << : *node
+  role:
+    short: -r
+    type: string
+    help: server role, e.g. app
+    default: nil
+  environment:
+    short: -e
+    type: string
+    help: environment, e.g. staging
+    default: nil
+  number:
+    short: -n
+    type: string
+    help: node number, e.g. 1
+    default: nil
 deploy:
   << : *withoutnode
   migrate:

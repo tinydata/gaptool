@@ -30,16 +30,15 @@ module Base
   def chefrun
     if sshReachable?
       hosts = getCluster()
-      run_list = @chefsettings['normal_recipe']
-      unless eval(@args[:recipe]).nil?
-        run_list = @args[:recipe]
-      end
       hosts.peach do |host|
+        run_list = $c.detect{|f| f[:hostname] == host }[:recipe]
+        unless @args[:recipe].to_s == 'nil'
+          run_list = @args[:recipe]
+        end
         host_settings = {
           'this_server' => host,
           'run_list'    => [ "recipe[#{run_list}]" ],
           'app_user'    => @env_settings['user'],
-          'app_name'    => @args[:app]
         }
         json = @chefsettings.merge!(host_settings).to_json
         run = [
@@ -72,7 +71,7 @@ module Base
   end
   def deploy
     if sshReachable?
-      if @args[:branch] == "nil" || @args[:branch].nil?
+      if @args[:branch].to_s == 'nil'
         branch = @env_settings['applications'][@args[:app]][@args[:environment]]['default_branch']
       else
         branch = @args[:branch]
