@@ -35,19 +35,7 @@ module Base
         unless @args[:recipe].to_s == 'nil'
           run_list = @args[:recipe]
         end
-        host_settings = {
-          'this_server' => host,
-          'run_list'    => [ "recipe[#{run_list}]" ],
-          'app_user'    => @env_settings['user'],
-        }
-        json = @chefsettings.merge!(host_settings).to_json
-        run = [
-          "cd ~admin/ops; git pull",
-          "echo '#{json}' > ~admin/solo.json",
-          "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
-        ]
-        putkey(host)
-        sshcmd(host, run)
+        recipeRun(host, run_list)
       end
     end
   end
@@ -71,76 +59,45 @@ module Base
   end
   def deploy
     if sshReachable?
-      if @args[:branch].to_s == 'nil'
-        branch = @env_settings['applications'][@args[:app]][@args[:environment]]['default_branch']
-      else
-        branch = @args[:branch]
-      end
       hosts = getCluster()
       hosts.peach do |host|
-        host_settings = {
-          'this_server' => host,
-          'run_list'    => [ "recipe[#{@chefsettings['deploy_recipe']}]" ],
-          'do_migrate'  => @args[:migrate],
-          'branch'      => branch,
-          'app_user'    => @env_settings['user'],
-          'app_name'    => @args[:app],
-          'rollback'    => false
+        run_list = $c.detect{|f| f[:hostname] == host }[:deploy]
+        unless @args[:branch].to_s == 'nil'
+          @branch = @args[:branch]
+        end
+        @deploy_settings = {
+          'branch' => @branch,
+          'app_name' => @args[:app],
+          'rollback' => false
         }
-        json = @chefsettings.merge!(host_settings).to_json
-        run = [
-          "cd ~admin/ops; git pull",
-          "echo '#{json}' > ~admin/solo.json",
-          "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
-        ]
-        putkey(host)
-        sshcmd(host, run)
+        recipeRun(host, run_list, @deploy_settings)
       end
     end
   end
   def rollback
     if sshReachable?
-      if @args[:branch] == "nil" || @args[:branch].nil?
-        branch = @env_settings['applications'][@args[:app]][@args[:environment]]['default_branch']
-      else
-        branch = @args[:branch]
-      end
       hosts = getCluster()
       hosts.peach do |host|
-        host_settings = {
-          'this_server' => host,
-          'run_list'    => [ "recipe[#{@chefsettings['deploy_recipe']}]" ],
-          'do_migrate'  => @args[:migrate],
-          'branch'      => branch,
-          'app_user'    => @env_settings['user'],
-          'app_name'    => @args[:app],
-          'rollback'    => true
+        run_list = $c.detect{|f| f[:hostname] == host }[:deploy]
+        @deploy_settings = {
+          'app_name' => @args[:app],
+          'rollback' => true
         }
-        json = @chefsettings.merge!(host_settings).to_json
-        run = [
-          "cd ~admin/ops; git pull",
-          "echo '#{json}' > ~admin/solo.json",
-          "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
-        ]
-        putkey(host)
-        sshcmd(host, run)
+        recipeRun(host, run_list, @deploy_settings)
       end
     end
   end
-  def web
+  def toggle
     if sshRachable?
       hosts = getCluster()
       if @args[:enable]
-        hosts.peach do |host|
-          sshcmd(host, "sudo -u #{@env_settings['user']} rm /data/#{@args[:app]}/shared/system/maintenance.html 2> /dev/null", :quiet => true)
-          puts "#{host} : web enabled"
-        end
+        @settings = { 'toggle' => 'enable' }
       end
       if @args[:disable]
-        hosts.peach do |host|
-          sshcmd(host, "sudo -u #{@env_settings['user']} ln -sf /data/#{@args[:app]}/current/public/maintenance.html /data/#{@args[:app]}/shared/system/maintenance.html", :quiet => true)
-          puts "#{host} : web disabled"
-        end
+        @settings = { 'toggle' => 'disable' }
+      end
+       hosts.peach do |host|
+        recipeRun(host, 'toggle', @deploy_settings)
       end
     end
   end

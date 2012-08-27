@@ -78,7 +78,11 @@ class GTBase
   end
   def getCluster
     hosts = Array.new
-    nodes = $c.select {|f| f[:role] == @args[:role] }.select {|i| i[:environment] == @args[:environment]}
+    if @args[:role]
+      nodes = $c.select {|f| f[:role] == @args[:role] }.select {|i| i[:environment] == @args[:environment]}
+    elsif @args[:app]
+      nodes = $c.select {|i| i[:environment] == @args[:environment]}.select {|f| f[:apps].include? @args[:app]}
+    end
     nodes.each {|f| hosts += [f[:hostname]]}
     return hosts
   end
@@ -160,7 +164,6 @@ class GTBase
       'rails_env' => @args[:environment],
       'server_names' => getCluster()
     }
-#    @chefsettings = @env_settings['applications'][@args[:app]][@args[:environment]]
     @chefsettings = @args
     @chefsettings.merge!(chef_extra)
     if @args[:zone].to_s == ''
@@ -202,6 +205,24 @@ class GTBase
     end
     Process.detach(cwrite)
     ap $c
+  end
+  def recipeRun(host, run_list, settings={})
+    host_settings = {
+      'this_server' => host,
+      'run_list'    => [ "recipe[#{run_list}]" ],
+      'app_user'    => @env_settings['user'],
+    }
+    @chefsettings.merge!(host_settings)
+    @chefsettings.merge!(settings)
+    run = [
+      "cd ~admin/ops; git pull",
+      "echo '#{@chefsettings.to_json}' > ~admin/solo.json",
+      "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
+    ]
+    puts host
+    ap @chefsettings
+    putkey(host)
+    sshcmd(host, run)
   end
 end
 

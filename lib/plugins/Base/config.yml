@@ -83,7 +83,7 @@ init:
     help: "CPU architecture, currently i686 or x86_64"
     type: string
     default: nil
-web:
+toggle:
   << : *withoutnode
   enable:
     short: -n
@@ -102,4 +102,3 @@ log:
     help: "Log type, as defined in the plugin's log.yml"
     type: string
     default: nil
-
