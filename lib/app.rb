@@ -214,6 +214,7 @@ class GTBase
     }
     @chefsettings.merge!(host_settings)
     @chefsettings.merge!(settings)
+    @chefsettings.merge!($c.select {|f| f[:hostname] == host}.first)
     run = [
       "cd ~admin/ops; git pull",
       "echo '#{@chefsettings.to_json}' > ~admin/solo.json",
