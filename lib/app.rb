@@ -35,7 +35,6 @@ def setup
 end
 setup()
 
-
 $dist_plugins = [ 'Base' ]
 if YAML::load(File.open("#{ENV['HOME']}/.gaptool-ma/plugins.yml"))
   $plugins = $dist_plugins + YAML::load(File.open("#{ENV['HOME']}/.gaptool-ma/plugins.yml"))
@@ -98,6 +97,7 @@ class GTBase
       key = @user_settings['mykey']
     end
     Net::SSH.start(host, user, :key_data => [key], :config => false, :keys_only => true, :paranoid => false) do |ssh|
+      ENV['SSH_AUTH_SOCK'] = ''
       commands.each do |command|
         if !options[:quiet]
           puts command.color(:cyan)

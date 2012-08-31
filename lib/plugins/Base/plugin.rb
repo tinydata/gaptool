@@ -101,33 +101,48 @@ module Base
       end
     end
   end
+  def add
+    if @args[:number].to_i == 0
+      numbers = Array.new
+      $c.each do |host|
+        if host[:role] == @args[:role]
+          numbers << host[:number]
+        end
+      end
+      number = numbers.max+1
+    else
+      number = @args[:number].to_i
+    end
+    AWS.config(:access_key_id => @user_settings['aws_id'], :secret_access_key => @user_settings['aws_secret'], :ec2_endpoint => "ec2.amazonaws.com")
+    ec2 = AWS::EC2.new
+    init = {
+      :role => @args[:role],
+      :number => number,
+      :environment => @args[:environment],
+      :apps => ['gildsource','arkham'],
+      :hostname => "#{@args[:role]}-#{@args[:environment]}-#{number}.#{@args[:domain]}",
+      :recipe => 'init',
+      :run_list => ["recipe[init]"]
+    }
+    @json = init.to_json
+    script = <<INITSCRIPT
+#!/usr/bin/env bash
+apt-get install -y zsh git libssl-dev ruby1.9.1-full build-essential
+REALLY_GEM_UPDATE_SYSTEM=true gem update --system
+gem install --bindir /usr/local/bin --no-ri --no-rdoc chef
+cat << 'EOFKEY' > /root/.ssh/id_rsa
+#{File.open(@args[:identity]).read}
+EOFKEY
+chmod 600 /root/.ssh/id_rsa
+echo 'StrictHostKeyChecking no' > /root/.ssh/config
+git clone -b multiapp #{@args[:repo]} /root/ops
+echo '#{@json}' > /root/init.json
+chef-solo -c /root/ops/cookbooks/init.rb -j /root/init.json && (rm /root/.ssh/id_rsa; userdel -r ubuntu)
+INITSCRIPT
+    instance = ec2.instances.create(:image_id => @args[:ami], :availability_zone => 'us-east-1d', :instance_type => 'm1.small', :key_name => 'gaptool', :security_group_ids => @args[:sgid], :user_data => script)
+  end
   def init
-    if @args[:zone] == 'nil'
-      zone = @env_settings['default_zone']
-    else
-      zone = @args[:zone]
-    end
-    az = zone.chop
-    if @args[:arch] == 'nil'
-      arch = @env_settings['default_arch']
-    else
-      arch = @args[:arch]
-    end
-    ami = @env_settings['amis'][az][arch]['id']
-    user = @env_settings['amis'][az][arch]['user']
-    if @args[:node] == 'solo' && isCluster?
-      hosts = getCluster()
-    end
-    if @args[:node] != 'solo' || !isCluster?
-      hosts = [ singleHost() ]
-    end
-    begin
-      initscript = File.read(File.expand_path(File.dirname(__FILE__) + "/init/#{@env_settings['amis'][az][arch]['os']}.erb"))
-    rescue
-      puts "There is no init file for your OS, aborting."
-      exit 100
-    end
-    itype = @env_settings['applications'][@args[:app]][@args[:environment]]['itype']
+   itype = @env_settings['applications'][@args[:app]][@args[:environment]]['itype']
     keyname = @user_settings['awskeys'][az]
     key = @user_settings['initkeys'][keyname]
     sg = @env_settings['applications'][@args[:app]][@args[:environment]]['sg']
