@@ -140,6 +140,9 @@ echo '#{@json}' > /root/init.json
 chef-solo -c /root/ops/cookbooks/init.rb -j /root/init.json && (rm /root/.ssh/id_rsa; userdel -r ubuntu)
 INITSCRIPT
     instance = ec2.instances.create(:image_id => @args[:ami], :availability_zone => 'us-east-1d', :instance_type => 'm1.small', :key_name => 'gaptool', :security_group_ids => @args[:sgid], :user_data => script)
+    instance.add_tag('Name' , :value => "#{@args[:role]}-#{@args[:environment]}-#{number}")
+    instance.add_tag('dns', :value => "#{@args[:role]}-#{@args[:environment]}-#{number}.#{@args[:domain]}")
+    instance.add_tag('gaptool', :value => "{:role => '#{init[:role]}', :number => #{number}, :environment => '#{init[:environment]}', :apps => '#{init[:apps].to_s}'}")
   end
   def init
    itype = @env_settings['applications'][@args[:app]][@args[:environment]]['itype']
