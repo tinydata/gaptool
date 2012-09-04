@@ -61,7 +61,11 @@ module Base
     if sshReachable?
       hosts = getCluster()
       hosts.peach do |host|
-        run_list = $c.detect{|f| f[:hostname] == host }[:deploy]
+        begin
+          run_list = $apps[@args[:app]][:deploy]
+        rescue
+          run_list = 'deploy'
+        end
         unless @args[:branch].to_s == 'nil'
           @branch = @args[:branch]
         end
