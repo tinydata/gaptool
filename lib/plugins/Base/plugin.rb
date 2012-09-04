@@ -102,28 +102,35 @@ module Base
     end
   end
   def add
-    if @args[:number].to_i == 0
-      numbers = Array.new
+    $c = cgen()
+    begin
+      @initfile = YAML::load(File.open(@args[:template]))
+    rescue
+      puts "Please input a valid yaml file for the template"
+    end
+    if @initfile['number'].to_i == 0
+      numbers = [0]
       $c.each do |host|
-        if host[:role] == @args[:role]
+        if host[:role] == @initfile['role']
           numbers << host[:number]
         end
       end
       number = numbers.max+1
     else
-      number = @args[:number].to_i
+      number = @initfile['role'].to_i
     end
     AWS.config(:access_key_id => @user_settings['aws_id'], :secret_access_key => @user_settings['aws_secret'], :ec2_endpoint => "ec2.amazonaws.com")
     ec2 = AWS::EC2.new
     init = {
-      :role => @args[:role],
       :number => number,
-      :environment => @args[:environment],
-      :apps => ['gildsource','arkham'],
-      :hostname => "#{@args[:role]}-#{@args[:environment]}-#{number}.#{@args[:domain]}",
+      :hostname => "#{@initfile['role']}-#{@initfile['environment']}-#{number}.#{@initfile['domain']}",
       :recipe => 'init',
       :run_list => ["recipe[init]"]
     }
+    @initfile.keys.each do |key|
+      @initfile[(key.to_sym rescue key) || key] = @initfile.delete(key)
+    end
+    init.merge! @initfile
     @json = init.to_json
     script = <<INITSCRIPT
 #!/usr/bin/env bash
@@ -131,18 +138,20 @@ apt-get install -y zsh git libssl-dev ruby1.9.1-full build-essential
 REALLY_GEM_UPDATE_SYSTEM=true gem update --system
 gem install --bindir /usr/local/bin --no-ri --no-rdoc chef
 cat << 'EOFKEY' > /root/.ssh/id_rsa
-#{File.open(@args[:identity]).read}
+#{init[:identity]}
 EOFKEY
 chmod 600 /root/.ssh/id_rsa
 echo 'StrictHostKeyChecking no' > /root/.ssh/config
-git clone -b multiapp #{@args[:repo]} /root/ops
+git clone -b #{init[:chefbranch]} #{init[:chefrepo]} /root/ops
 echo '#{@json}' > /root/init.json
-chef-solo -c /root/ops/cookbooks/init.rb -j /root/init.json && (rm /root/.ssh/id_rsa; userdel -r ubuntu)
+chef-solo -c /root/ops/cookbooks/init.rb -j /root/init.json && (r53_update.sh; rm /root/.ssh/id_rsa; userdel -r ubuntu)
 INITSCRIPT
-    instance = ec2.instances.create(:image_id => @args[:ami], :availability_zone => 'us-east-1d', :instance_type => 'm1.small', :key_name => 'gaptool', :security_group_ids => @args[:sgid], :user_data => script)
-    instance.add_tag('Name' , :value => "#{@args[:role]}-#{@args[:environment]}-#{number}")
-    instance.add_tag('dns', :value => "#{@args[:role]}-#{@args[:environment]}-#{number}.#{@args[:domain]}")
+    instance = ec2.instances.create(:image_id => init[:ami], :availability_zone => @args[:zone], :instance_type => init[:itype], :key_name => init[:keyname], :security_group_ids => init[:sg], :user_data => script)
+    instance.add_tag('Name' , :value => "#{init[:role]}-#{init[:environment]}-#{number}")
+    instance.add_tag('dns', :value => "#{init[:role]}-#{init[:environment]}-#{number}.#{init[:domain]}")
     instance.add_tag('gaptool', :value => "{:role => '#{init[:role]}', :number => #{number}, :environment => '#{init[:environment]}', :apps => '#{init[:apps].to_s}'}")
+    sleep 2
+    File.open(File.expand_path("#{ENV['HOME']}/.gaptool-ma/aws.yml"), 'w') {|f| f.write(cgen().to_yaml)}
   end
   def init
    itype = @env_settings['applications'][@args[:app]][@args[:environment]]['itype']

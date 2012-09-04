@@ -22,59 +22,19 @@ chefrun:
     default: nil
   recipe:
     short: -c
-    help: specific recipe
-    default: nil
+    help: specific recipe, default is main
+    default: main
 add:
-  role:
-    short: -r
-    type: string
-    help: server role, e.g. app
-    default: nil
-  environment:
-    short: -e
-    type: string
-    help: environment, e.g. staging
-    default: nil
-  number:
-    short: -n
-    type: string
-    help: node number, e.g. 1
-    default: '0'
-  identity:
-    short: -i
-    type: string
-    help: path to identity file, make sure permissions are 0600
-    default: nil
-  itype:
+  template:
     short: -t
     type: string
-    help: type of instance, e.g. m1.small
+    help: template file for adding server
     default: nil
-  apps:
-    short: -a
+  zone:
+    short: -z
     type: string
-    help: enter as comma delimited list, no spaces
-    default: nil
-  domain:
-    short: -d
-    type: string
-    help: the domain, e.g. gild.com
-    default: nil
-  ami:
-    short: -m
-    type: string
-    help: the image id
-    default: nil
-  sgid:
-    short: -s
-    type: string
-    help: the security group id
-    default: nil
-  repo:
-    short: -g
-    type: string
-    help: git repo of cookbooks
-    default: nil
+    help: availability zone to start the new server in, default is us-east-1d
+    default: us-east-1d
 scpto: &node
   << : *withoutnode
   node:

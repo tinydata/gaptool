@@ -162,7 +162,6 @@ class GTBase
     end
     chef_extra = {
       'rails_env' => @args[:environment],
-      'server_names' => getCluster()
     }
     @chefsettings = @args
     @chefsettings.merge!(chef_extra)
@@ -189,7 +188,7 @@ class GTBase
             :number => gaptags[:number],
             :role => gaptags[:role],
             :environment => gaptags[:environment],
-            :apps => gaptags[:apps]
+            :apps => eval(gaptags[:apps])
           }]
         end
       end
