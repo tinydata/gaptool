@@ -203,7 +203,6 @@ class GTBase
       File.open(File.expand_path("#{ENV['HOME']}/.gaptool-ma/aws.yml"), 'w') {|f| f.write(cgen().to_yaml)}
     end
     Process.detach(cwrite)
-    ap $c
   end
   def recipeRun(host, run_list, settings={})
     host_settings = {
@@ -220,7 +219,6 @@ class GTBase
       "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
     ]
     puts host
-    ap @chefsettings
     putkey(host)
     sshcmd(host, run)
   end

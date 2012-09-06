@@ -148,12 +148,18 @@ chmod 600 /root/.ssh/id_rsa
 echo 'StrictHostKeyChecking no' > /root/.ssh/config
 git clone -b #{init[:chefbranch]} #{init[:chefrepo]} /root/ops
 echo '#{@json}' > /root/init.json
+while [ ! -b '/dev/xvdf' ]; do sleep 1; done
 chef-solo -c /root/ops/cookbooks/init.rb -j /root/init.json && (r53_update.sh; rm /root/.ssh/id_rsa; userdel -r ubuntu)
 INITSCRIPT
     instance = ec2.instances.create(:image_id => init[:ami], :availability_zone => @args[:zone], :instance_type => init[:itype], :key_name => init[:keyname], :security_group_ids => init[:sg], :user_data => script)
+    sleep 1 until instance.status == :running
+    volume = ec2.volumes.create(:size => init[:datasize], :availability_zone => @args[:zone])
+    attachment = volume.attach_to(instance, "/dev/sdf")
+    sleep 1 until attachment.status != :attaching
+    puts "attached"
     instance.add_tag('Name' , :value => "#{init[:role]}-#{init[:environment]}-#{number}")
     instance.add_tag('dns', :value => "#{init[:role]}-#{init[:environment]}-#{number}.#{init[:domain]}")
-    instance.add_tag('gaptool', :value => "{:role => '#{init[:role]}', :number => #{number}, :environment => '#{init[:environment]}', :apps => '#{init[:apps].to_s}'}")
+    instance.add_tag('gaptool', :value => "{:role => '#{init[:role]}', :number => #{number}, :environment => '#{init[:environment]}', :apps => '#{init[:apps].to_s}', :volid => '#{volume.id}'}")
     sleep 2
     File.open(File.expand_path("#{ENV['HOME']}/.gaptool-ma/aws.yml"), 'w') {|f| f.write(cgen().to_yaml)}
   end

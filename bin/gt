@@ -9,6 +9,8 @@ require 'json'
 require 'peach'
 require 'erb'
 require 'rainbow'
+require 'crack'
+require 'ap'
 require File.expand_path(File.dirname(__FILE__) + "/../lib/app.rb")
 
 # Make sure lang isn't fucked
