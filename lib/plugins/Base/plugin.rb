@@ -115,7 +115,7 @@ module Base
     if @initfile['number'].to_i == 0
       numbers = [0]
       $c.each do |host|
-        if host[:role] == @initfile['role']
+        if host[:role] == @initfile['role'] && host[:environment] == @initfile['environment']
           numbers << host[:number]
         end
       end
@@ -155,11 +155,16 @@ INITSCRIPT
     sleep 1 until instance.status == :running
     volume = ec2.volumes.create(:size => init[:datasize], :availability_zone => @args[:zone])
     attachment = volume.attach_to(instance, "/dev/sdf")
-    sleep 1 until attachment.status != :attaching
-    puts "attached"
+    vol2id = 'nil'
+    if init[:environment] == 'production'
+      volume2 = ec2.volumes.create(:size => init[:datasize], :availability_zone => @args[:zone])
+      attachment2 = volume2.attach_to(instance, "/dev/sdg")
+      sleep 1 until attachment2.status != :attaching
+      vol2id = volume2.id
+    end
     instance.add_tag('Name' , :value => "#{init[:role]}-#{init[:environment]}-#{number}")
     instance.add_tag('dns', :value => "#{init[:role]}-#{init[:environment]}-#{number}.#{init[:domain]}")
-    instance.add_tag('gaptool', :value => "{:role => '#{init[:role]}', :number => #{number}, :environment => '#{init[:environment]}', :apps => '#{init[:apps].to_s}', :volid => '#{volume.id}'}")
+    instance.add_tag('gaptool', :value => "{:role => '#{init[:role]}', :number => #{number}, :environment => '#{init[:environment]}', :apps => '#{init[:apps].to_s}', :volid => '#{volume.id}', :vol2id => '#{vol2id}'}")
     sleep 2
     File.open(File.expand_path("#{ENV['HOME']}/.gaptool-ma/aws.yml"), 'w') {|f| f.write(cgen().to_yaml)}
   end
