@@ -149,6 +149,7 @@ echo 'StrictHostKeyChecking no' > /root/.ssh/config
 git clone -b #{init[:chefbranch]} #{init[:chefrepo]} /root/ops
 echo '#{@json}' > /root/init.json
 while [ ! -b '/dev/xvdf' ]; do sleep 1; done
+while [ ! -b '/dev/xvdg' ]; do sleep 1; done
 chef-solo -c /root/ops/cookbooks/init.rb -j /root/init.json && (r53_update.sh; rm /root/.ssh/id_rsa; userdel -r ubuntu)
 INITSCRIPT
     instance = ec2.instances.create(:image_id => init[:ami], :availability_zone => @args[:zone], :instance_type => init[:itype], :key_name => init[:keyname], :security_group_ids => init[:sg], :user_data => script)
