@@ -70,7 +70,6 @@ else
     end
   end
 end
-require 'ap'
 class GTBase
   def isCluster?
     return false
@@ -171,7 +170,6 @@ class GTBase
       zone = @args[:zone]
     end
     az = zone.chop
-    require 'ap'
     AWS.config(:access_key_id => @user_settings['aws_id'], :secret_access_key => @user_settings['aws_secret'], :ec2_endpoint => "ec2.#{az}.amazonaws.com")
     @ec2 = AWS::EC2.new
     def cgen

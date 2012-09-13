@@ -82,18 +82,6 @@ rollback:
     help: "Choose git branch, default defined in your gt_env.yml"
     type: string
     default: nil
-init:
-  << : *node
-  zone:
-    short: -z
-    help: "availability zone to deploy in, default in your gt_env.yml"
-    type: string
-    default: nil
-  arch:
-    short: -r
-    help: "CPU architecture, currently i686 or x86_64"
-    type: string
-    default: nil
 toggle:
   << : *withoutnode
   enable:
