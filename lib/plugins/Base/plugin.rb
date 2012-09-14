@@ -29,12 +29,9 @@ module Base
   end
   def chefrun
     if sshReachable?
+      run_list = $c.detect{|f| f[:role] == @args[:role] }[:recipe] || @args[:recipe]
       hosts = getCluster()
       hosts.peach do |host|
-        run_list = $c.detect{|f| f[:hostname] == host }[:recipe]
-        unless @args[:recipe].to_s == 'nil' || @args[:recipe].to_s == ''
-          run_list = @args[:recipe]
-        end
         recipeRun(host, run_list)
       end
     end

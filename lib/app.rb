@@ -216,7 +216,6 @@ class GTBase
       "echo '#{@chefsettings.to_json}' > ~admin/solo.json",
       "sudo chef-solo -c ~admin/ops/cookbooks/solo.rb -j ~admin/solo.json"
     ]
-    puts host
     putkey(host)
     sshcmd(host, run)
   end
