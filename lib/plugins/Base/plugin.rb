@@ -32,11 +32,9 @@ module Base
       hosts = getCluster()
       hosts.peach do |host|
         run_list = $c.detect{|f| f[:hostname] == host }[:recipe]
-        puts "before test: #{host} #{run_list}\n"
         unless @args[:recipe].to_s == 'nil' || @args[:recipe].to_s == ''
           run_list = @args[:recipe]
         end
-        puts "after test: #{host} #{run_list}\n"
         recipeRun(host, run_list)
       end
     end
