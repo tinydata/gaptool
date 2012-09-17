@@ -16,5 +16,6 @@ Gem::Specification.new do |s|
   s.add_dependency "json"
   s.add_dependency "peach"
   s.add_dependency "rainbow"
+  s.add_dependency "crack"
 end
 
