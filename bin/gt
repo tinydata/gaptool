@@ -4,14 +4,12 @@ require 'rubygems'
 require 'net/ssh'
 require 'net/scp'
 require 'yaml'
-require 'json'
 require 'peach'
 require 'erb'
 require 'rainbow'
 require 'clamp'
-require 'httparty'
 
-require File.expand_path(File.dirname(__FILE__) + "/../lib/app.rb")
+require File.expand_path(File.dirname(__FILE__) + "/../lib/gt_api.rb")
 
 # Make sure lang isn't fucked
 ENV['LANG'] = "en_US.UTF-8"
@@ -19,3 +17,6 @@ ENV['LANG'] = "en_US.UTF-8"
 
 # Nuke your ssh-agent
 ENV['SSH_AUTH_SOCK'] = ''
+
+
+api = GaptoolServer.new('mbailey', 'caf7553db3dd170fe35381d4aceea5cd624edf093d0781cd4c431dd10343af19')
