@@ -1,0 +1,2 @@
+rails:
+  - /var/log/rails.log

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = "gaptool"
-  s.version = "1.0.0"
+  s.version = "0.11.0"
   s.authors = ['Matt Bailey']
   s.email = ['m@mdb.io']
   s.homepage = 'http://mdb.io'
@@ -11,10 +11,11 @@ Gem::Specification.new do |s|
 
   s.add_dependency "net-ssh"
   s.add_dependency "net-scp"
-  s.add_dependency "clamp"
+  s.add_dependency "trollop"
+  s.add_dependency "aws-sdk"
   s.add_dependency "json"
   s.add_dependency "peach"
   s.add_dependency "rainbow"
-  s.add_dependency "httparty"
+  s.add_dependency "crack"
 end
 

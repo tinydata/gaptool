@@ -1,0 +1,10 @@
+test:
+  app:
+    short: -a
+    type: string
+    help: Which appliction, e.g. twitter
+    default: nil
+  environment:
+    short: -e
+    type: string
+    default: nil
