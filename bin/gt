@@ -2,14 +2,15 @@
 
 require 'rubygems'
 require 'net/ssh'
-require 'trollop'
+require 'net/scp'
 require 'yaml'
-require 'aws-sdk'
 require 'json'
 require 'peach'
 require 'erb'
 require 'rainbow'
-require 'crack'
+require 'clamp'
+require 'httparty'
+
 require File.expand_path(File.dirname(__FILE__) + "/../lib/app.rb")
 
 # Make sure lang isn't fucked
